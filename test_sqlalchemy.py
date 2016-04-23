@@ -287,6 +287,43 @@ class TablenameTestCase(unittest.TestCase):
         self.assertFalse(hasattr(Base, '__tablename__'))
         self.assertEqual(Duck.__tablename__, 'duck')
 
+    def test_name_providing_mixin(self):
+        """__tablename__ provided via a mixed-in declared_attr should set a name"""
+
+        app = flask.Flask(__name__)
+        db = fsa.SQLAlchemy(app)
+
+        class NameMixin(object):
+            @declared_attr
+            def __tablename__(cls):
+                return 'mixed_in'
+
+        class Duck(db.Model, NameMixin):
+            id = db.Column(db.Integer, primary_key=True)
+
+        self.assertEqual(Duck.__tablename__, 'mixed_in')
+
+    def test_name_provided_mixin_inherited(self):
+        """__tablename__ provided via an inherited declared_attr should set a name"""
+
+        app = flask.Flask(__name__)
+        db = fsa.SQLAlchemy(app)
+
+        class NameMixin(object):
+            @declared_attr
+            def __tablename__(cls):
+                return 'mixed_in_' + cls.__name__.lower()
+
+        class Duck(db.Model, NameMixin):
+            id = db.Column(db.Integer, primary_key=True)
+
+        class Donald(Duck):
+            id = db.Column(db.Integer, db.ForeignKey(Duck.id), primary_key=True)
+
+        self.assertEqual(Duck.__tablename__, 'mixed_in_duck')
+        self.assertEqual(Donald.__tablename__, 'mixed_in_donald')
+
+
     def test_abstract_name(self):
         """Abstract model should not set a name.  Subclass should set a name."""
 
