@@ -25,7 +25,7 @@ from sqlalchemy import orm, event, inspect
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import Session as SessionBase
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta, declared_attr
 from flask_sqlalchemy._compat import iteritems, itervalues, xrange, string_types
 
 # the best timer function for the platform
@@ -570,6 +570,16 @@ def _should_set_tablename(bases, d):
         return False
 
     if any(v.primary_key for v in itervalues(d) if isinstance(v, sqlalchemy.Column)):
+        # Check that both __table__ and __tablename__ do not appear as
+        # declared_attr's in the MRO.
+        for base in bases:
+            for bases_base in base.__mro__:
+                if isinstance(bases_base.__dict__.get('__table__'),
+                        declared_attr):
+                    return False
+                if isinstance(bases_base.__dict__.get('__tablename__'),
+                        declared_attr):
+                    return False
         return True
 
     for base in bases:
